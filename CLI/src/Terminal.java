@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,9 +30,111 @@ public class Terminal {
     public List<File> ls(String[] args, String type) {return null;}
     public void mkdir (String[] args){}
     public void rmdir(String[] args) {}
-    public void touch(String[] args) {}
-    public void cp (String[] args , String type){}
-    public String history(){return null;}
+        /**
+     * Creates a new file with the given target path - Yassin
+     * @param args a String array containing the target path of the file
+     * @throws IOException
+     */
+    public void touch(String[] args) {
+        // Check if the number of arguments is not equal to 1
+        if (args.length != 1) {
+            System.out.println("Invalid arguments");
+            return;
+        }
+
+        // Get the target path from the arguments
+        String target = args[0];
+        File newFile;
+
+        // Check if the target path starts with a file separator
+        if (target.startsWith(File.separator)) {
+            // Get the current partition of the current directory
+            String currentPartition = currentDirectory.getAbsolutePath().substring(0, 2);
+            // Create a new file using the current partition and target path
+            newFile = new File(currentPartition, target);
+        } else {
+            // Create a new file using the current directory and target path
+            newFile = new File(currentDirectory, target);
+        }
+
+        try {
+            // Try to create a new file
+            if (newFile.createNewFile()) {
+                System.out.println("File created: " + newFile.getAbsolutePath());
+            } else {
+                System.out.println("File already exists or could not be created: " + newFile.getAbsolutePath());
+            }
+        } catch (IOException e) {
+            // Catch any IO exception that occurred while creating the file
+            System.out.println("An error occurred while creating the file: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Copies a file from a source location to a destination location - Yassin
+     * @param  args      an array of two strings representing the source and destination paths
+     * @param  type      a string representing the type of copy operation ("-r" for recursive, otherwise non-recursive)
+     */
+    public void cp(String[] args, String type) {
+        // Check if the number of arguments is valid
+        if (args.length != 2) {
+            System.out.println("Invalid arguments");
+            return;
+        }
+
+        String source = args[0];
+        String destination = args[1];
+        File sourceFile;
+        File destinationFile;
+
+        try {
+            String currentPartition = currentDirectory.getAbsolutePath().substring(0, 2);
+
+            // Create the source file based on the given source path
+            if (source.startsWith(File.separator)) {
+                sourceFile = new File(currentPartition, source);
+            } else if (source.charAt(1) == ':') {
+                sourceFile = new File(source);
+            } else {
+                sourceFile = new File(currentDirectory, source);
+            }
+
+            // Create the destination file based on the given destination path
+            if (destination.startsWith(File.separator)) {
+                destinationFile = new File(currentPartition, destination);
+            } else if (destination.charAt(1) == ':') {
+                destinationFile = new File(destination);
+            } else {
+                destinationFile = new File(currentDirectory, destination);
+            }
+
+            // Perform the copy operation based on the given type
+            if ("-r".equals(type)) {
+                Files.copy(destinationFile.toPath(), sourceFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                Files.copy(sourceFile.toPath(), destinationFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (Exception e) {
+            System.out.println("An error occurred while copying the files: " + e.getMessage());
+        }
+    }
+    
+   /**
+     * Retrieves the history of commands executed. - Yassin
+     * @author Yassin Tareek
+     * @return  a string representing the command history
+     */
+    public String history() {
+        // Initialize an empty string to store the command history
+        String result = "";
+        // Iterate over the command history list
+        for (int i = 0; i < commandHistory.size(); i++) {
+            // Append the command number, command, and a new line character to the result string
+            result += (i + 1) + " " + commandHistory.get(i) + "\n";
+        }
+        // Return the command history as a string
+        return result;
+    }
 
     
     /**
