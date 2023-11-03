@@ -28,68 +28,62 @@ public class Terminal {
         return(currentDirectory.getAbsolutePath());
     }
     public void cd(String[] args){
+        if(args.length > 1){
+            System.out.println("cd: Too many arguments");
+            return;
+        }
         if(args.length == 0){
             currentDirectory = new File(System.getProperty("user.home"));
+            return;
         }
-        else if(args[0].equals("..")){
-            String[] path = currentDirectory.getAbsolutePath().split("\\\\");
-            String newPath = "";
-            for(int i = 0; i < path.length - 1; i++){
-                newPath += path[i];
-                newPath += File.separator;
+        File newDir;
+        if(args[0].equals("..")){
+            newDir = new File(currentDirectory.getParentFile().getAbsolutePath());
+            if(newDir == null){
+                System.out.println("reached root");
+                return;
             }
-            currentDirectory = new File(newPath);
         }
         else{
-            if(args[0].startsWith("C:")){
-                currentDirectory = new File(args[0]);
+            if(args[0].charAt(1)==':'){
+                newDir = new File(args[0]);
             }
-            else if(!args[0].startsWith(File.separator)){
-                File[] dir = currentDirectory.listFiles();
-                boolean found = false;
-                for(File f : dir){
-                    if(f.getName().equals(args[0])){
-                        found = true;
-                        break;
-                    }
-                }
-                if(found){
-                    currentDirectory = new File(currentDirectory.getAbsolutePath() + File.separator + args[0]);
-                }
-                else{
-                    System.out.println("The system cannot find the path specified.");
-                }
-                
+            else if(args[0].startsWith(File.separator)){
+                newDir = new File(currentDirectory.getAbsolutePath().substring(0, 2),args[0]);
             }
             else{
-                currentDirectory = new File(currentDirectory.getAbsolutePath().substring(0, 2),args[0]);
+                newDir = new File(currentDirectory, args[0]);
             }
+        }
+        if(newDir.exists() && newDir.isDirectory()){
+            currentDirectory = newDir;
+        }
+        else{
+            System.out.println("cd: "+args[0]+": No such file or directory");
         }
     }
     public void mkdir(String[] args){
-        File f = new File(currentDirectory.getAbsolutePath());
-        if(args.length == 1){
-            if(args[0].charAt(1) == ':'){
-                f = new File(args[0]);
+        File f;
+        if(args.length < 1){
+            System.out.println("mkdir: missing operand");
+            return;
+        }
+        for(String arg:args){
+            if(arg.charAt(1) == ':'){
+                f = new File(arg);
             }
-            else if(args[0].startsWith(File.separator)){
-                f = new File(currentDirectory.getAbsolutePath().substring(0, 2),args[0]);
+            else if(arg.startsWith(File.separator)){
+                f = new File(currentDirectory.getAbsolutePath().substring(0, 2),arg);
             }
             else{
-                f = new File(currentDirectory.getAbsolutePath(),File.separator+args[0]);
+                f = new File(currentDirectory,arg);
             }
-            if(!f.mkdir()){
+            if(f.mkdir() == false){
                 System.out.println("The system cannot find the path specified.");
             }
         }
-        else{
-            for(int i = 0; i < args.length - 1; i++){
-                String[] newArgs = {args[args.length-1]+File.separator+args[i]};
-                mkdir(newArgs);
-            }
-        }
-        
-        }
+
+    }
         
 
     public String echo(String[] args) {return null;}
