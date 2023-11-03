@@ -85,9 +85,57 @@ public class Terminal {
 
     }
         
+    /**
+     * Takes 1 argument and prints it (Handles the strings).
+     * @param args : The argument passed to it.
+     * @return : The printed argument , or null if more than one argument.
+     */
+    public String echo(String[] args) {
+        if (args != null && (args.length == 1
+                || (args[0].startsWith("\"") && args[args.length-1].endsWith("\""))
+                || (args[0].startsWith("'") && args[args.length-1].endsWith("'")))) {
+            String ret = "";
+            Character quote = args[0].charAt(0);
+            if (args[0].startsWith("\"") || args[0].startsWith("'")) {
+                args[0] = args[0].substring(1);
+                args[args.length-1] = args[args.length-1].substring(0, args[args.length-1].length() - 1);
+            }
+            for (String arg : args) {
+                if (arg.contains(quote.toString())) {
+                    System.out.println("echo: required 1 argument");
+                    return null;
+                }
+                ret += arg + " ";
+            }
+            return ret;
+        }
+        System.out.println("echo: required 1 argument");
+        return null;
+    }
 
-    public String echo(String[] args) {return null;}
-    public List<File> ls(String[] args, String type) {return null;}
+    /**
+     * Lists the contents of the current directory sorted alphabetically (Handles the option `-r`)
+     * @param args : The argument passed to it.
+     * @param type : The option (null or -r).
+     * @return : The list of contents, or null if error occurred.
+     */
+    public List<File> ls(String[] args, String type) {
+        if (args.length == 0) {
+            List<File> files = Arrays.asList(currentDirectory.listFiles());
+            Collections.sort(files);
+            if (type == null) {
+                return files;
+            }
+            else if (type.equals("-r")) {
+                Collections.reverse(files);
+                return files;
+            }
+        } else {
+            System.out.println("ls: takes no arguments");
+        }
+        return null;
+    }
+    
     public void rmdir(String[] args) {}
         /**
      * Creates a new file with the given target path - Yassin
