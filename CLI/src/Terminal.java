@@ -1,6 +1,5 @@
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -10,6 +9,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Arrays;
+import java.util.Collections;
 
 public class Terminal {
     private File currentDirectory;
@@ -17,12 +18,11 @@ public class Terminal {
     private List<String> commandHistory;
 
     public Terminal() {
-        currentDirectory = new File(System.getProperty("user.home"));
+        currentDirectory = new File(System.getProperty("user.dir"));
         parser = new Parser();
         commandHistory = new ArrayList<String>();
     }
 
-    // pwd > output.txt
 
     public String pwd(){
         return(currentDirectory.getAbsolutePath());
@@ -32,20 +32,20 @@ public class Terminal {
             System.out.println("cd: Too many arguments");
             return;
         }
-        if(args.length == 0){
+        if(args.length == 0 || args[0].equals(".")){
             currentDirectory = new File(System.getProperty("user.home"));
             return;
         }
         File newDir;
         if(args[0].equals("..")){
-            newDir = new File(currentDirectory.getParentFile().getAbsolutePath());
+            newDir = currentDirectory.getParentFile();
             if(newDir == null){
                 System.out.println("reached root");
                 return;
             }
         }
         else{
-            if(args[0].charAt(1)==':'){
+            if(args[0].length() > 1 && args[0].charAt(1)==':'){
                 newDir = new File(args[0]);
             }
             else if(args[0].startsWith(File.separator)){
@@ -55,21 +55,21 @@ public class Terminal {
                 newDir = new File(currentDirectory, args[0]);
             }
         }
-        if(newDir.exists() && newDir.isDirectory()){
-            currentDirectory = newDir;
+        if(newDir.exists() && newDir.isDirectory()){ 
+                currentDirectory = newDir;
         }
         else{
-            System.out.println("cd: "+args[0]+": No such file or directory");
+            System.out.println("cd " + args[0] + " No such file or directory");
         }
     }
     public void mkdir(String[] args){
         File f;
-        if(args.length < 1){
-            System.out.println("mkdir: missing operand");
+        if(args.length == 0){
+            System.out.println("Usage : mkdir <dir1> <dir2> ... <dirN>");
             return;
         }
         for(String arg:args){
-            if(arg.charAt(1) == ':'){
+            if(arg.length() > 1 && arg.charAt(1) == ':'){
                 f = new File(arg);
             }
             else if(arg.startsWith(File.separator)){
@@ -82,7 +82,6 @@ public class Terminal {
                 System.out.println("The system cannot find the path specified.");
             }
         }
-
     }
         
     /**
@@ -129,15 +128,16 @@ public class Terminal {
             else if (type.equals("-r")) {
                 Collections.reverse(files);
                 return files;
+            }else{
+                System.out.println("Usage : ls [-r]");
             }
         } else {
-            System.out.println("ls: takes no arguments");
+            System.out.println("Usage : ls [-r]");
         }
         return null;
     }
     
-    public void rmdir(String[] args) {}
-        /**
+    /**
      * Creates a new file with the given target path - Yassin
      * @param args a String array containing the target path of the file
      * @throws IOException
@@ -145,7 +145,7 @@ public class Terminal {
     public void touch(String[] args) {
         // Check if the number of arguments is not equal to 1
         if (args.length != 1) {
-            System.out.println("Invalid arguments");
+            System.out.println("Usage : touch <filename>");
             return;
         }
 
@@ -176,7 +176,67 @@ public class Terminal {
             System.out.println("An error occurred while creating the file: " + e.getMessage());
         }
     }
+
+    public void rmdir(String[] args) {
+        if (args.length != 1) {
+            System.out.println("Usage : rmdir <dir1> or rmdir * ");
+            return;
+        }
     
+        String target = args[0];
+        File directoryToDelete;
+    
+        if (target.equals("*")) {
+            File currentDir = new File(currentDirectory.getAbsolutePath());
+            removeEmptyDirectories(currentDir.listFiles());
+        } else {
+            // Case 2: Remove the specified directory if it is empty
+            if (target.startsWith(File.separator)) {
+                // Absolute path
+                String currentPartition = currentDirectory.getAbsolutePath().substring(0, 2);
+                directoryToDelete = new File(currentPartition , target);
+            } 
+            else if (target.length() > 1 && target.charAt(1) == ':') {
+                directoryToDelete = new File(target);
+            } 
+            else {
+                // Relative (short) path
+                directoryToDelete = new File(currentDirectory, target);
+            }
+    
+            if (directoryToDelete.exists() && directoryToDelete.isDirectory()) {
+                if (directoryToDelete.list().length == 0) {
+                    if (directoryToDelete.delete() == false) {
+                        System.out.println("Failed to remove directory: " + directoryToDelete.getAbsolutePath());
+                    }
+                } else {
+                    System.out.println("Directory is not empty, cannot be removed: " + directoryToDelete.getAbsolutePath());
+                }
+            } else {
+                System.out.println("The specified path doesn't exist or is not a directory.");
+            }
+        }
+    }
+    
+    private void removeEmptyDirectories(File[] subdirs) {
+        if (subdirs != null) {
+            for (File subdir : subdirs) {
+                if (subdir.isDirectory()) {
+                    removeEmptyDirectories(subdir.listFiles());
+                }
+                if (subdir.isDirectory() && subdir.list().length == 0) {
+                    if (subdir.delete()) {
+                        System.out.println("Directory removed: " + subdir.getAbsolutePath());
+                    } else {
+                        System.out.println("Failed to remove directory: " + subdir.getAbsolutePath());
+                    }
+                }else{
+                    System.out.println("Directory is not empty, cannot be removed: " + subdir.getAbsolutePath());
+                }
+            }
+        }
+    }
+
     /**
      * Copies a file from a source location to a destination location - Yassin
      * @param  args      an array of two strings representing the source and destination paths
@@ -185,7 +245,7 @@ public class Terminal {
     public void cp(String[] args, String type) {
         // Check if the number of arguments is valid
         if (args.length != 2) {
-            System.out.println("Invalid arguments");
+                System.out.println("Usage : cp [-r] <source> <destination>");
             return;
         }
 
@@ -200,7 +260,7 @@ public class Terminal {
             // Create the source file based on the given source path
             if (source.startsWith(File.separator)) {
                 sourceFile = new File(currentPartition, source);
-            } else if (source.charAt(1) == ':') {
+            } else if (source.length() > 1 && source.charAt(1) == ':') {
                 sourceFile = new File(source);
             } else {
                 sourceFile = new File(currentDirectory, source);
@@ -209,7 +269,7 @@ public class Terminal {
             // Create the destination file based on the given destination path
             if (destination.startsWith(File.separator)) {
                 destinationFile = new File(currentPartition, destination);
-            } else if (destination.charAt(1) == ':') {
+            } else if (destination.length() > 1 && destination.charAt(1) == ':') {
                 destinationFile = new File(destination);
             } else {
                 destinationFile = new File(currentDirectory, destination);
@@ -218,8 +278,10 @@ public class Terminal {
             // Perform the copy operation based on the given type
             if ("-r".equals(type)) {
                 Files.copy(destinationFile.toPath(), sourceFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            } else {
+            } else if (type == null) {
                 Files.copy(sourceFile.toPath(), destinationFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }else{
+                System.out.println("Usage : cp [-r] <source> <destination>");
             }
         } catch (Exception e) {
             System.out.println("An error occurred while copying the files: " + e.getMessage());
@@ -274,7 +336,7 @@ public class Terminal {
     }
         
     /**
-     * Counts the number of lines, words, and characters in a file. - Abdelrhman
+     * Counts the number of lines, words, and characters in a file. -cat Abdelrhman
      *
      * @param args an array of command line arguments, where args[0] is the filename
      * @return a string containing the number of lines, words, and characters in the file, along with the filename
@@ -359,7 +421,7 @@ public class Terminal {
         }
         else {
             // Print an error message and return null
-            System.out.println("Invalid number of args!");
+            System.out.println("Usage : cat <filename> [filename]");
             return null;
         }
         
@@ -381,13 +443,9 @@ public class Terminal {
         
         // Return the result string
         return result;
-    } catch (FileNotFoundException e) {
+    } catch (Exception e) {
         // Print an error message and return null if a file is not found
-        System.out.println("An error occurred.");
-        return null;
-    } catch (IOException e) {
-        // Print an error message and return null if an IO exception occurs
-        System.out.println("An error occurred.");
+        System.out.println("file not found or error occurred: " + e.getMessage());
         return null;
     }
 }
@@ -404,7 +462,7 @@ public class Terminal {
         File fileToWrite = new File(currentDirectory.getAbsolutePath() + File.separator + fileName);
         
         // Check if the operator is "<"
-        if ("<".equals(operator)) {
+        if (operator.equals(">")) {
             try (FileWriter writer = new FileWriter(fileToWrite)) {
                 // Write the string to the file
                 writer.write(stringToWrite);
@@ -414,7 +472,7 @@ public class Terminal {
             }
         } 
         // Check if the operator is "<<"
-        else if ("<<".equals(operator)) {
+        else if (">>".equals(operator)) {
             // Check if the file exists
             if (fileToWrite.exists()) {
                 try (FileWriter writer = new FileWriter(fileToWrite)) {
